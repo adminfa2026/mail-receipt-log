@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() { return request.auth != null && request.auth.token.email == 'fa@impact.co.th'; }
+    match /mailItems/{mailId} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        resource.data.status == 'รอรับเอกสาร' &&
+        request.resource.data.status == 'รับเอกสารแล้ว' &&
+        request.resource.data.receivedBy is string && request.resource.data.receivedBy.size() > 0 &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'receivedBy', 'collectedDate', 'updatedAt'])
+      );
+    }
+  }
+}
